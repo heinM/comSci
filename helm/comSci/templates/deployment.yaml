@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: { { include "comSci.fullname" . } }
+  labels: { { - include "comSci.labels" . | nindent 4 } }
+spec:
+  replicas: { { .Values.replicaCount } }
+  selector:
+    matchLabels: { { - include "comSci.selectorLabels" . | nindent 6 } }
+  template:
+    metadata:
+      labels: { { - include "comSci.selectorLabels" . | nindent 8 } }
+    spec:
+      containers:
+        - name: { { .Chart.Name } }
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: { { .Values.image.pullPolicy } }
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env: { { - toYaml .Values.env | nindent 12 } }
+          resources: { { - toYaml .Values.resources | nindent 12 } }

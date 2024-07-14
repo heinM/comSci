@@ -1,0 +1,6 @@
+apiVersion: v2
+name: comSci
+description: A Helm chart for my Python application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
