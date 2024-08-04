@@ -1,23 +1,34 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: { { include "comSci.fullname" . } }
-  labels: { { - include "comSci.labels" . | nindent 4 } }
+  name: {{include "comsci.fullname" .}}
+  labels: {{- include "comsci.labels" . | nindent 4}}
 spec:
-  replicas: { { .Values.replicaCount } }
+  replicas: {{.Values.replicaCount}}
   selector:
-    matchLabels: { { - include "comSci.selectorLabels" . | nindent 6 } }
+    matchLabels: {{- include "comsci.selectorLabels" . | nindent 6}}
   template:
     metadata:
-      labels: { { - include "comSci.selectorLabels" . | nindent 8 } }
+      labels: {{- include "comsci.selectorLabels" . | nindent 8}}
     spec:
       containers:
-        - name: { { .Chart.Name } }
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: { { .Values.image.pullPolicy } }
+        - name: {{.Chart.Name}}
+          image: "localhost:5000/comsci:latest"
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8000
               protocol: TCP
-          env: { { - toYaml .Values.env | nindent 12 } }
-          resources: { { - toYaml .Values.resources | nindent 12 } }
+          # Add other container configurations as needed
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{include "comsci.fullname" .}}
+  labels: {{- include "comsci.labels" . | nindent 4}}
+spec:
+  selector: {{- include "comsci.selectorLabels" . | nindent 4}}
+  ports:
+    - port: {{.Values.service.port}}
+      targetPort: 8000

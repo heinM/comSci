@@ -1,41 +1,26 @@
-import logging
-import structlog
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from prometheus_client import make_asgi_app, Counter
+from prometheus_client import make_asgi_app
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-structlog.configure(
-    processors=[
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer()
-    ],
-    context_class=dict,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    wrapper_class=structlog.stdlib.BoundLogger,
-    cache_logger_on_first_use=True,
+from logging_package.logging_config import get_logger, configure_logging
+from calculator_package.calculator import perform_calculation
+from monitoring_metrics.metrics import (
+    REQUEST_COUNT, CALCULATION_COUNT, timing_decorator, error_tracker, hit_counter
 )
 
-logger = structlog.get_logger()
+configure_logging()
+logger = get_logger(__name__)
 
 app = FastAPI()
 
-# Set up OpenTelemetry
+# OpenTelemetry setup
 resource = Resource(attributes={
-    SERVICE_NAME: "comSci"
+    SERVICE_NAME: "comsci"
 })
 
 trace.set_tracer_provider(TracerProvider(resource=resource))
@@ -47,7 +32,6 @@ trace.get_tracer_provider().add_span_processor(span_processor)
 FastAPIInstrumentor.instrument_app(app)
 
 # Set up Prometheus metrics
-REQUEST_COUNT = Counter('request_count', 'Total number of requests')
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
@@ -59,15 +43,35 @@ async def log_requests(request: Request, call_next):
     return response
 
 @app.get("/")
+@timing_decorator
+@error_tracker
+@hit_counter("/")
 async def root():
     REQUEST_COUNT.inc()
     logger.info("Root endpoint called")
     return {"message": "Hello, World"}
 
 @app.get("/health")
+@timing_decorator
+@error_tracker
+@hit_counter("/health")
 async def health():
     logger.info("Health check endpoint called")
     return {"status": "healthy"}
+
+@app.get("/calculate")
+@timing_decorator
+@error_tracker
+@hit_counter("/calculate")
+async def calculate(a: float, b: float, operation: str):
+    REQUEST_COUNT.inc()
+    CALCULATION_COUNT.inc()
+    logger.info("Calculate endpoint called", a=a, b=b, operation=operation)
+    try:
+        result = perform_calculation(a, b, operation)
+        return {"result": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

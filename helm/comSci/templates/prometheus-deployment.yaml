@@ -1,0 +1,69 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "comsci.fullname" . }}-prometheus
+  labels:
+    {{- include "comsci.labels" . | nindent 4 }}
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "comsci.selectorLabels" . | nindent 6 }}
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        {{- include "comsci.selectorLabels" . | nindent 8 }}
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.30.3
+          ports:
+            - containerPort: 9090
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--web.external-url=http://comsci.local:30080/prometheus"
+            - "--web.route-prefix=/prometheus"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus/prometheus.yml
+              subPath: prometheus.yml
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "comsci.fullname" . }}-prometheus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "comsci.fullname" . }}-prometheus
+  labels:
+    {{- include "comsci.labels" . | nindent 4 }}
+    app: prometheus
+spec:
+  selector:
+    {{- include "comsci.selectorLabels" . | nindent 4 }}
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "comsci.fullname" . }}-prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+      - job_name: 'app'
+        static_configs:
+          - targets: ['{{ include "comsci.fullname" . }}:8000']
+{{- end }}

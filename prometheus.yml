@@ -1,0 +1,14 @@
+# prometheus.yml
+global:
+  scrape_interval: 15s # How often to scrape targets by default
+
+scrape_configs:
+  # Scrape Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Scrape the application
+  - job_name: "app"
+    static_configs:
+      - targets: ["app:8000"]

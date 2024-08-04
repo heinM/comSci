@@ -1,0 +1,8 @@
+README.md
+setup.py
+comsci.egg-info/PKG-INFO
+comsci.egg-info/SOURCES.txt
+comsci.egg-info/dependency_links.txt
+comsci.egg-info/top_level.txt
+tests/__init__.py
+tests/test_main.py

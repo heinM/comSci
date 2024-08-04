@@ -1,7 +1,7 @@
 import os
 
 # Application settings
-APP_NAME = "comSci"
+APP_NAME = "comsci"
 APP_VERSION = "1.0.0"
 
 # Server settings

@@ -1,19 +1,31 @@
-replicaCount: 3
+replicaCount: 1
 
 image:
-  repository: comSci
+  repository: comsci
   tag: latest
   pullPolicy: IfNotPresent
 
+nameOverride: ""
+fullnameOverride: ""
+
 service:
-  type: ClusterIP
-  port: 80
+  port: 8000
+
+prometheus:
+  enabled: true
+
+jaeger:
+  enabled: true
+
+grafana:
+  enabled: true
 
 ingress:
   enabled: true
   className: "nginx"
+  annotations: {}
   hosts:
-    - host: comSci.local
+    - host: comsci.local
       paths:
         - path: /
           pathType: Prefix

@@ -2,24 +2,47 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "comSci.fullname" . }}
+  name: {{ include "comsci.fullname" . }}
   labels:
-    {{- include "comSci.labels" . | nindent 4 }}
+    {{- include "comsci.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
-  ingressClassName: {{ .Values.ingress.className }}
+  ingressClassName: nginx
   rules:
-    {{- range .Values.ingress.hosts }}
-    - host: {{ .host | quote }}
+    - host: comsci.local
       http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          - path: /app(/|$)(.*)
+            pathType: Prefix
             backend:
               service:
-                name: {{ include "comSci.fullname" $ }}
+                name: {{ include "comsci.fullname" . }}
                 port: 
-                  number: {{ $.Values.service.port }}
-          {{- end }}
-    {{- end }}
+                  number: {{ .Values.service.port }}
+          - path: /prometheus(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-prometheus
+                port: 
+                  number: 9090
+          - path: /jaeger(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-jaeger
+                port: 
+                  number: 16686
+          - path: /grafana(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-grafana
+                port: 
+                  number: 3000
 {{- end }}
